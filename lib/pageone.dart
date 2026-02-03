@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:lab5/pagetwo.dart';
+import 'package:http/http.dart' as http; // รับส่งข้อมูลผ่าน http
+import 'dart:async'; // ให้รอการทำงาน
 import 'dart:convert';
-import 'package:http/http.dart' as http;
 
 class Pageone extends StatefulWidget {
   const Pageone({super.key});
@@ -10,204 +12,185 @@ class Pageone extends StatefulWidget {
 }
 
 class _PageoneState extends State<Pageone> {
-  final usernameCtrl = TextEditingController();
-  final passwordCtrl = TextEditingController();
+  final username = TextEditingController();
+  final password = TextEditingController();
+  String errorText = '';
 
   bool hidePassword = true;
 
-  String resultText = '';
-  Color resultColor = Colors.red;
+  // ================= Widget =================
 
-  Future<void> login() async {
-    print("===== LOGIN START =====");
+  Widget logoWidget() {
+    return Column(
+      children: const [
+        Icon(Icons.login, size: 80, color: Color(0xFF2F6FED)),
+        SizedBox(height: 10),
+        Text(
+          "Big login",
+          style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+        ),
+      ],
+    );
+  }
 
-    try {
-      final url = Uri.parse(
-        'http://172.24.149.141/bis3n2_2/mobile_service_68/login.php',
+  Widget inputField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    bool isPassword = false,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: isPassword ? hidePassword : false,
+      decoration: InputDecoration(
+        hintText: hint,
+        prefixIcon: Icon(icon),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  hidePassword ? Icons.visibility_off : Icons.visibility,
+                ),
+                onPressed: () {
+                  setState(() {
+                    hidePassword = !hidePassword;
+                  });
+                },
+              )
+            : null,
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+      ),
+    );
+  }
+
+  Widget loginButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: ElevatedButton(
+        onPressed: () {
+          print("on-click");
+          Login();
+        },
+
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF2F6FED),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(30),
+          ),
+        ),
+        child: const Text(
+          "LOGIN",
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<String> Login() async {
+    /* print("debug-1410:" + username.text.toString());
+    print("debug-1410:" + password.text.toString()); */
+    Map<String, String> headers = {
+      "content-type": "application/json",
+      "accept": "application/json",
+    };
+
+    Map<String, String> data_post = {
+      "username": username.text.toString(),
+      "password": password.text.toString(),
+    };
+
+    var uri = Uri.parse(
+      "http://172.24.149.84/bis3n2_2/mobile_service_68/login.php",
+    );
+
+    var response = await http.post(
+      uri,
+      headers: headers,
+      body: json.encode(data_post),
+      encoding: Encoding.getByName("utf-8"),
+    );
+
+    Map resp_json = json.decode(response.body);
+
+    print(resp_json);
+    print(resp_json['result']);
+    if (resp_json['result'] == 1 && resp_json['datalist'] != null) {
+      print(resp_json['datalist'][0]['cus_name']);
+    } else {
+      print("ไม่พบบัญชีผู้ใช้");
+    }
+
+    if (resp_json['result'] == 1 && resp_json['datalist'] != null) {
+      Map<String, dynamic> user = resp_json['datalist'][0];
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => Pagetwo(userData: user)),
       );
-
-      print("URL: $url");
-      print("USERNAME: ${usernameCtrl.text}");
-      print("PASSWORD: ${passwordCtrl.text}");
-
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "username": usernameCtrl.text,
-          "password": passwordCtrl.text,
-        }),
-      );
-
-      print("===== RAW RESPONSE =====");
-      print(response.body);
-
-      // API ส่ง JSON 2 ก้อน → เอาก้อนหลัง
-      final raw = response.body.trim();
-      final index = raw.indexOf('{', 1);
-
-      if (index == -1) {
-        throw "รูปแบบ JSON ไม่ถูกต้อง";
-      }
-
-      final cleanJson = raw.substring(index);
-
-      print("===== CLEAN JSON =====");
-      print(cleanJson);
-
-      final data = jsonDecode(cleanJson);
-
-      print("===== RESULT =====");
-      print(data);
-
-      if (data['result'] == 1) {
-  final user = data['datalist'][0];
-
-  print("===== LOGIN SUCCESS =====");
-  print("cus_id       : ${user['cus_id']}");
-  print("cus_name     : ${user['cus_name']}");
-  print("cus_username : ${user['cus_username']}");
-
-  setState(() {
-    resultText = "เข้าสู่ระบบสำเร็จ";
-    resultColor = Colors.green;
-  });
-} else {
-  print("===== LOGIN FAIL =====");
-  print("ไม่พบบัญชีผู้ใช้");
-
-  setState(() {
-    resultText = "ไม่พบบัญชีผู้ใช้ หรือรหัสผ่านไม่ถูกต้อง";
-    resultColor = Colors.red;
-  });
-}
-
-    } catch (e) {
-       print("===== CONNECTION ERROR =====");
-       print(e);
-
+    } else {
       setState(() {
-        resultText = "เกิดข้อผิดพลาดในการเชื่อมต่อ";
-        resultColor = Colors.red;
+        errorText = "ไม่พบบัญชีผู้ใช้ หรือรหัสผ่านไม่ถูกต้อง";
       });
     }
 
-    print("===== LOGIN END =====");
+    return "OK";
   }
 
+  // ================= UI =================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F8FC),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                const SizedBox(height: 30),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            children: [
+              const SizedBox(height: 30),
 
-                /// LOGO
-                const Icon(
-                  Icons.autorenew_rounded,
-                  size: 80,
-                  color: Color(0xFF2F6FED),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  "OrbitFlow",
-                  style: TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+              logoWidget(),
 
-                const SizedBox(height: 40),
+              const SizedBox(height: 40),
 
-                /// USERNAME
-                TextField(
-                  controller: usernameCtrl,
-                  decoration: InputDecoration(
-                    hintText: "Username or Email",
-                    prefixIcon: const Icon(Icons.person_outline),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
+              inputField(
+                controller: username,
+                hint: "Username or Email",
+                icon: Icons.person_outline,
+              ),
 
-                const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-                /// PASSWORD
-                TextField(
-                  controller: passwordCtrl,
-                  obscureText: hidePassword,
-                  decoration: InputDecoration(
-                    hintText: "Password",
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        hidePassword
-                            ? Icons.visibility_off
-                            : Icons.visibility,
-                      ),
-                      onPressed: () {
-                        setState(() {
-                          hidePassword = !hidePassword;
-                        });
-                      },
-                    ),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
+              inputField(
+                controller: password,
+                hint: "Password",
+                icon: Icons.lock_outline,
+                isPassword: true,
+              ),
 
-                const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
-                /// LOGIN BUTTON
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: login,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2F6FED),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                    ),
-                    child: const Text(
-                      "LOGIN",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
+              loginButton(),
 
-                const SizedBox(height: 20),
-
-                /// RESULT
+              const SizedBox(height: 20),
+              if (errorText.isNotEmpty)
                 Text(
-                  resultText,
-                  style: TextStyle(
-                    color: resultColor,
+                  errorText,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.red,
                     fontWeight: FontWeight.bold,
+                    fontSize: 14,
                   ),
                 ),
-
-                const SizedBox(height: 30),
-              ],
-            ),
+            ],
           ),
         ),
       ),

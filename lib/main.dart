@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lab5/pageone.dart';
+import 'package:lab5/pagetwo.dart';
 
 void main() {
   runApp(Myapp());
