@@ -109,7 +109,7 @@ class _PageoneState extends State<Pageone> {
     };
 
     var uri = Uri.parse(
-      "http://172.24.149.84/bis3n2_2/mobile_service_68/login.php",
+      "http://172.24.148.197/bis3n2_2/mobile_service_68/login.php",
     );
 
     var response = await http.post(

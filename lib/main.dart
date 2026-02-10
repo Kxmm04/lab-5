@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lab5/pageone.dart';
 import 'package:lab5/pagetwo.dart';
+import 'package:lab5/productlist.dart';
 
 void main() {
   runApp(Myapp());
@@ -13,7 +14,7 @@ class Myapp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home:Pageone(),
+      home:productlistPage(),
     );
   }
 }
